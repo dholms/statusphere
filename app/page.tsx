@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { LoginForm } from "@/components/LoginForm";
 import { LogoutButton } from "@/components/LogoutButton";
+import { StatusPicker } from "@/components/StatusPicker";
 
 export default async function Home() {
   const session = await getSession();
@@ -33,9 +34,7 @@ export default async function Home() {
             </div>
 
             <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm">
-                You&apos;re logged in! Next step: add status functionality.
-              </p>
+              <StatusPicker />
             </div>
           </div>
         ) : (

@@ -44,4 +44,4 @@ next-env.d.ts
 *.db
 *.db-wal
 *.db-shm
-/src/lexicons
+/lib/lexicons

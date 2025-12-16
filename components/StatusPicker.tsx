@@ -1,0 +1,55 @@
+"use client";
+
+import { useState } from "react";
+
+const EMOJIS = ["😊", "😴", "🤔", "🎉", "💻"];
+
+export function StatusPicker() {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSelect(emoji: string) {
+    setLoading(true);
+    setSelected(emoji);
+
+    try {
+      const res = await fetch("/api/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: emoji }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update status");
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
+        Set your status
+      </p>
+      <div className="flex gap-2">
+        {EMOJIS.map((emoji) => (
+          <button
+            key={emoji}
+            onClick={() => handleSelect(emoji)}
+            disabled={loading}
+            className={`text-2xl p-2 rounded-lg transition-all
+              ${selected === emoji
+                ? "bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500"
+                : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}
+              disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

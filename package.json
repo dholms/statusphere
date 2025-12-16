@@ -9,12 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@atproto/oauth-client-node": "^0.3.13",
+    "better-sqlite3": "^12.5.0",
+    "kysely": "^0.28.9",
     "next": "16.0.10",
     "react": "19.2.1",
     "react-dom": "19.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

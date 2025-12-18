@@ -5,6 +5,8 @@ import { Kysely, SqliteDialect } from "kysely";
 export interface DatabaseSchema {
   auth_state: AuthStateTable;
   auth_session: AuthSessionTable;
+  account: AccountTable;
+  status: StatusTable;
 }
 
 interface AuthStateTable {
@@ -15,6 +17,20 @@ interface AuthStateTable {
 interface AuthSessionTable {
   key: string; // DID
   value: string; // JSON stringified NodeSavedSession
+}
+
+export interface AccountTable {
+  did: string;
+  handle: string;
+  active: 0 | 1;
+}
+
+export interface StatusTable {
+  uri: string;
+  authorDid: string;
+  status: string;
+  createdAt: string;
+  indexedAt: string;
 }
 
 // Lazy initialization to avoid issues during Next.js build
@@ -36,6 +52,20 @@ export function getDb(): Kysely<DatabaseSchema> {
       CREATE TABLE IF NOT EXISTS auth_session (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS account (
+        did TEXT PRIMARY KEY,
+        handle TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1
+      );
+
+      CREATE TABLE IF NOT EXISTS status (
+        uri TEXT PRIMARY KEY,
+        authorDid TEXT NOT NULL,
+        status TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        indexedAt TEXT NOT NULL
       );
     `);
 

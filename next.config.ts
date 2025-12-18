@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["@atproto/tap", "thread-stream", "pino"],
 };
 
 export default nextConfig;

@@ -4,8 +4,12 @@ import { useState } from "react";
 
 const EMOJIS = ["😊", "😴", "🤔", "🎉", "💻"];
 
-export function StatusPicker() {
-  const [selected, setSelected] = useState<string | null>(null);
+interface StatusPickerProps {
+  currentStatus?: string | null;
+}
+
+export function StatusPicker({ currentStatus }: StatusPickerProps) {
+  const [selected, setSelected] = useState<string | null>(currentStatus ?? null);
   const [loading, setLoading] = useState(false);
 
   async function handleSelect(emoji: string) {

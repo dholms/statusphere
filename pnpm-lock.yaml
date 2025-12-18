@@ -11,6 +11,12 @@ dependencies:
   '@atproto/oauth-client-node':
     specifier: ^0.3.13
     version: 0.3.13
+  '@atproto/syntax':
+    specifier: ^0.4.2
+    version: 0.4.2
+  '@atproto/tap':
+    specifier: ^0.0.2
+    version: 0.0.2
   better-sqlite3:
     specifier: ^12.5.0
     version: 12.5.0
@@ -353,6 +359,31 @@ packages:
 
   /@atproto/syntax@0.4.2:
     resolution: {integrity: sha512-X9XSRPinBy/0VQ677j8VXlBsYSsUXaiqxWVpGGxJYsAhugdQRb0jqaVKJFtm6RskeNkV6y9xclSUi9UYG/COrA==}
+    dev: false
+
+  /@atproto/tap@0.0.2:
+    resolution: {integrity: sha512-CrfJWrvozuSIokOQLMeSFcF5ZpstpxIZ9PnBpgIkbLQQKb3wO+0dn90xZN5jlLjczPHvT4PrF1z8uYgVlujTlg==}
+    engines: {node: '>=18.7.0'}
+    dependencies:
+      '@atproto/common': 0.5.3
+      '@atproto/syntax': 0.4.2
+      '@atproto/ws-client': 0.0.4
+      ws: 8.18.3
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+    dev: false
+
+  /@atproto/ws-client@0.0.4:
+    resolution: {integrity: sha512-dox1XIymuC7/ZRhUqKezIGgooZS45C6vHCfu0PnWjfvsLCK2kAlnvX4IBkA/WpcoijDhQ9ejChnFbo/sLmgvAg==}
+    engines: {node: '>=18.7.0'}
+    dependencies:
+      '@atproto/common': 0.5.3
+      ws: 8.18.3
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
     dev: false
 
   /@atproto/xrpc@0.7.7:
@@ -4416,6 +4447,19 @@ packages:
 
   /wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+    dev: false
+
+  /ws@8.18.3:
+    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
     dev: false
 
   /y18n@5.0.8:

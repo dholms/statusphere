@@ -44,28 +44,36 @@ export async function POST(request: NextRequest) {
       } catch {
         return NextResponse.json({ success: false });
       }
-      await db
-        .insertInto("status")
-        .values({
-          uri: uri.toString(),
-          authorDid: evt.did,
-          status: record.status,
-          current: 0,
-          createdAt: record.createdAt,
-          indexedAt: indexedAt,
-        })
-        .onConflict((oc) =>
-          oc.column("uri").doUpdateSet({
+
+      await db.transaction().execute(async (tx) => {
+        await tx
+          .insertInto("status")
+          .values({
+            uri: uri.toString(),
+            authorDid: evt.did,
             status: record.status,
+            current: 0,
             createdAt: record.createdAt,
             indexedAt: indexedAt,
-          }),
-        )
-        .execute();
-      await setCurrStatus(db, evt.did);
+          })
+          .onConflict((oc) =>
+            oc.column("uri").doUpdateSet({
+              status: record.status,
+              createdAt: record.createdAt,
+              indexedAt: indexedAt,
+            }),
+          )
+          .execute();
+        await setCurrStatus(tx, evt.did);
+      });
     } else {
-      await db.deleteFrom("status").where("uri", "=", uri.toString()).execute();
-      await setCurrStatus(db, evt.did);
+      await db.transaction().execute(async (tx) => {
+        await tx
+          .deleteFrom("status")
+          .where("uri", "=", uri.toString())
+          .execute();
+        await setCurrStatus(tx, evt.did);
+      });
     }
   }
   return NextResponse.json({
@@ -73,25 +81,24 @@ export async function POST(request: NextRequest) {
   });
 }
 
-const setCurrStatus = async (db: Database, did: string) => {
-  await db.transaction().execute(async (tx) => {
-    await tx
-      .updateTable("status")
-      .set({ current: 0 })
-      .where("authorDid", "=", did)
-      .where("current", "=", 1)
-      .execute();
-    await tx
-      .updateTable("status")
-      .set({ current: 1 })
-      .where("uri", "=", (qb) =>
-        qb
-          .selectFrom("status")
-          .select("uri")
-          .where("authorDid", "=", did)
-          .orderBy("createdAt", "desc")
-          .limit(1),
-      )
-      .execute();
-  });
+// expected to be called within tx
+const setCurrStatus = async (tx: Database, did: string) => {
+  await tx
+    .updateTable("status")
+    .set({ current: 0 })
+    .where("authorDid", "=", did)
+    .where("current", "=", 1)
+    .execute();
+  await tx
+    .updateTable("status")
+    .set({ current: 1 })
+    .where("uri", "=", (db) =>
+      db
+        .selectFrom("status")
+        .select("uri")
+        .where("authorDid", "=", did)
+        .orderBy("createdAt", "desc")
+        .limit(1),
+    )
+    .execute();
 };

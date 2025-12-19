@@ -4,6 +4,20 @@ import { LoginForm } from "@/components/LoginForm";
 import { LogoutButton } from "@/components/LogoutButton";
 import { StatusPicker } from "@/components/StatusPicker";
 
+function timeAgo(dateString: string): string {
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  const seconds = Math.floor((now - then) / 1000);
+
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
 async function getStatuses() {
   const db = getDb();
   const statuses = await db
@@ -11,7 +25,7 @@ async function getStatuses() {
     .innerJoin("account", "status.authorDid", "account.did")
     .selectAll()
     .where("current", "=", 1)
-    .orderBy("indexedAt", "desc")
+    .orderBy("createdAt", "desc")
     .limit(20)
     .execute();
   return statuses;
@@ -23,7 +37,7 @@ async function getMyStatus(did: string) {
     .selectFrom("status")
     .selectAll()
     .where("authorDid", "=", did)
-    .orderBy("indexedAt", "desc")
+    .orderBy("createdAt", "desc")
     .limit(1)
     .executeTakeFirst();
   return status ?? null;
@@ -83,8 +97,11 @@ export default async function Home() {
               {statuses.map((s) => (
                 <li key={s.uri} className="flex items-center gap-3 text-sm">
                   <span className="text-2xl">{s.status}</span>
-                  <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs truncate">
+                  <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs truncate flex-1">
                     {s.handle}
+                  </span>
+                  <span className="text-zinc-400 dark:text-zinc-500 text-xs">
+                    {timeAgo(s.createdAt)}
                   </span>
                 </li>
               ))}

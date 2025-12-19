@@ -24,7 +24,8 @@ export function getOAuthClient(): NodeOAuthClient {
       // State store - temporary storage for OAuth state during authorization
       stateStore: {
         async get(key: string) {
-          const row = await getDb()
+          const db = await getDb();
+          const row = await db
             .selectFrom("auth_state")
             .select("value")
             .where("key", "=", key)
@@ -32,8 +33,9 @@ export function getOAuthClient(): NodeOAuthClient {
           return row ? JSON.parse(row.value) : undefined;
         },
         async set(key: string, value: NodeSavedState) {
+          const db = await getDb();
           const valueJson = JSON.stringify(value);
-          await getDb()
+          await db
             .insertInto("auth_state")
             .values({ key, value: valueJson })
             .onConflict((oc) =>
@@ -42,7 +44,8 @@ export function getOAuthClient(): NodeOAuthClient {
             .execute();
         },
         async del(key: string) {
-          await getDb()
+          const db = await getDb();
+          await db
             .deleteFrom("auth_state")
             .where("key", "=", key)
             .execute();
@@ -52,7 +55,8 @@ export function getOAuthClient(): NodeOAuthClient {
       // Session store - persistent storage for user sessions
       sessionStore: {
         async get(key: string) {
-          const row = await getDb()
+          const db = await getDb();
+          const row = await db
             .selectFrom("auth_session")
             .select("value")
             .where("key", "=", key)
@@ -60,8 +64,9 @@ export function getOAuthClient(): NodeOAuthClient {
           return row ? JSON.parse(row.value) : undefined;
         },
         async set(key: string, value: NodeSavedSession) {
+          const db = await getDb();
           const valueJson = JSON.stringify(value);
-          await getDb()
+          await db
             .insertInto("auth_session")
             .values({ key, value: valueJson })
             .onConflict((oc) =>
@@ -70,7 +75,8 @@ export function getOAuthClient(): NodeOAuthClient {
             .execute();
         },
         async del(key: string) {
-          await getDb()
+          const db = await getDb();
+          await db
             .deleteFrom("auth_session")
             .where("key", "=", key)
             .execute();

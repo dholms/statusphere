@@ -5,7 +5,8 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { StatusPicker } from "@/components/StatusPicker";
 
 async function getStatuses() {
-  const statuses = await getDb()
+  const db = await getDb();
+  const statuses = await db
     .selectFrom("status")
     .innerJoin("account", "status.authorDid", "account.did")
     .selectAll()
@@ -16,7 +17,8 @@ async function getStatuses() {
 }
 
 async function getMyStatus(did: string) {
-  const status = await getDb()
+  const db = await getDb();
+  const status = await db
     .selectFrom("status")
     .selectAll()
     .where("authorDid", "=", did)

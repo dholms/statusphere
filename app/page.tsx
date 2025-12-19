@@ -7,6 +7,7 @@ import { StatusPicker } from "@/components/StatusPicker";
 async function getStatuses() {
   const statuses = await getDb()
     .selectFrom("status")
+    .innerJoin("account", "status.authorDid", "account.did")
     .selectAll()
     .orderBy("indexedAt", "desc")
     .limit(20)
@@ -20,6 +21,7 @@ async function getMyStatus(did: string) {
     .selectAll()
     .where("authorDid", "=", did)
     .orderBy("indexedAt", "desc")
+    .limit(1)
     .executeTakeFirst();
   return status ?? null;
 }
@@ -76,13 +78,10 @@ export default async function Home() {
           ) : (
             <ul className="space-y-3">
               {statuses.map((s) => (
-                <li
-                  key={s.uri}
-                  className="flex items-center gap-3 text-sm"
-                >
+                <li key={s.uri} className="flex items-center gap-3 text-sm">
                   <span className="text-2xl">{s.status}</span>
                   <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs truncate">
-                    {s.authorDid}
+                    {s.handle}
                   </span>
                 </li>
               ))}

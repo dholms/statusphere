@@ -5,6 +5,7 @@ import { AtUri } from "@atproto/syntax";
 // import { getOAuthClient, getSession } from "@/lib/auth";
 import * as xyz from "@/lib/lexicons/xyz";
 import { getDb } from "@/lib/db";
+import { success } from "@atproto/lex";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -38,8 +39,13 @@ export async function POST(request: NextRequest) {
   }
   if (evt.type === "record") {
     if (evt.action === "create" || evt.action === "update") {
-      const record = xyz.statusphere.status.$parse(evt.record);
-      console.log("RECORD: ", record);
+      let record: xyz.statusphere.status.Main;
+      try {
+        record = xyz.statusphere.status.$parse(evt.record);
+      } catch {
+        return NextResponse.json({ success: false });
+      }
+
       const uri = AtUri.make(evt.did, evt.collection, evt.rkey);
       const indexedAt = new Date().toISOString();
       await db

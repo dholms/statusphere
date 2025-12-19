@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseTapEvent } from "@atproto/tap";
 import { AtUri } from "@atproto/syntax";
 import * as xyz from "@/lib/lexicons/xyz";
-import { getDb } from "@/lib/db";
+import { Database, getDb } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const evt = parseTapEvent(body);
-  const db = await getDb();
+  const db = getDb();
   if (evt.type === "identity") {
     if (evt.status === "deleted") {
       await db.transaction().execute(async (tx) => {
@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
     }
   }
   if (evt.type === "record") {
+    const uri = AtUri.make(evt.did, evt.collection, evt.rkey);
+    const indexedAt = new Date().toISOString();
     if (evt.action === "create" || evt.action === "update") {
       let record: xyz.statusphere.status.Main;
       try {
@@ -43,22 +45,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false });
       }
 
-      const uri = AtUri.make(evt.did, evt.collection, evt.rkey);
-      const indexedAt = new Date().toISOString();
-      db.transaction().execute(async (tx) => {
+      await db.transaction().execute(async (tx) => {
         await tx
-          .updateTable("status")
-          .set({ current: 0 })
-          .where("authorDid", "=", evt.did)
-          .where("current", "=", 1)
-          .execute();
-        await db
           .insertInto("status")
           .values({
             uri: uri.toString(),
             authorDid: evt.did,
             status: record.status,
-            current: 1,
+            current: 0,
             createdAt: record.createdAt,
             indexedAt: indexedAt,
           })
@@ -70,6 +64,15 @@ export async function POST(request: NextRequest) {
             }),
           )
           .execute();
+        await setCurrStatus(tx, evt.did);
+      });
+    } else {
+      await db.transaction().execute(async (tx) => {
+        await tx
+          .deleteFrom("status")
+          .where("uri", "=", uri.toString())
+          .execute();
+        await setCurrStatus(tx, evt.did);
       });
     }
   }
@@ -77,3 +80,25 @@ export async function POST(request: NextRequest) {
     success: true,
   });
 }
+
+// expected to be called within tx
+const setCurrStatus = async (tx: Database, did: string) => {
+  await tx
+    .updateTable("status")
+    .set({ current: 0 })
+    .where("authorDid", "=", did)
+    .where("current", "=", 1)
+    .execute();
+  await tx
+    .updateTable("status")
+    .set({ current: 1 })
+    .where("uri", "=", (db) =>
+      db
+        .selectFrom("status")
+        .select("uri")
+        .where("authorDid", "=", did)
+        .orderBy("createdAt")
+        .limit(1),
+    )
+    .execute();
+};

@@ -5,11 +5,12 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { StatusPicker } from "@/components/StatusPicker";
 
 async function getStatuses() {
-  const db = await getDb();
+  const db = getDb();
   const statuses = await db
     .selectFrom("status")
     .innerJoin("account", "status.authorDid", "account.did")
     .selectAll()
+    .where("current", "=", 1)
     .orderBy("indexedAt", "desc")
     .limit(20)
     .execute();
@@ -17,7 +18,7 @@ async function getStatuses() {
 }
 
 async function getMyStatus(did: string) {
-  const db = await getDb();
+  const db = getDb();
   const status = await db
     .selectFrom("status")
     .selectAll()

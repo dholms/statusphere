@@ -53,35 +53,30 @@ export default async function Home() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-            Top Statuses
-          </h2>
-          {topStatuses.length === 0 ? (
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              No statuses yet.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {topStatuses.map((s) => (
-                <div
-                  key={s.status}
-                  className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1"
-                >
-                  <span className="text-xl">{s.status}</span>
-                  <span className="text-zinc-500 dark:text-zinc-400 text-sm">
-                    {String(s.count)}
-                  </span>
-                </div>
-              ))}
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+          {topStatuses.length > 0 && (
+            <div className="mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                Top
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {topStatuses.map((s) => (
+                  <div
+                    key={s.status}
+                    className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-full px-2 py-0.5"
+                  >
+                    <span className="text-base">{s.status}</span>
+                    <span className="text-zinc-500 dark:text-zinc-400 text-xs">
+                      {String(s.count)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-            Recent Statuses
-          </h2>
+          <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
+            Recent
+          </h3>
           {statuses.length === 0 ? (
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               No statuses yet. Be the first!

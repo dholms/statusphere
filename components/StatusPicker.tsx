@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const EMOJIS = ["😊", "😴", "🤔", "🎉", "💻"];
+const EMOJIS = ["😊", "😴", "🤔", "🎉", "💻", "💙"];
 
 interface StatusPickerProps {
   currentStatus?: string | null;
@@ -11,7 +11,9 @@ interface StatusPickerProps {
 
 export function StatusPicker({ currentStatus }: StatusPickerProps) {
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(currentStatus ?? null);
+  const [selected, setSelected] = useState<string | null>(
+    currentStatus ?? null,
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSelect(emoji: string) {
@@ -49,9 +51,11 @@ export function StatusPicker({ currentStatus }: StatusPickerProps) {
             onClick={() => handleSelect(emoji)}
             disabled={loading}
             className={`text-2xl p-2 rounded-lg transition-all
-              ${selected === emoji
-                ? "bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500"
-                : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}
+              ${
+                selected === emoji
+                  ? "bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500"
+                  : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              }
               disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {emoji}

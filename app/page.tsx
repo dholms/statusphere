@@ -7,11 +7,13 @@ import {
   getAccountHandle,
   getAccountStatus,
   getRecentStatuses,
+  getTopStatuses,
 } from "@/lib/db/queries";
 
 export default async function Home() {
   const session = await getSession();
   const statuses = await getRecentStatuses();
+  const topStatuses = await getTopStatuses();
   const accntStatus = session ? await getAccountStatus(session.did) : null;
   const accntHandle = session ? await getAccountHandle(session.did) : null;
 
@@ -50,6 +52,31 @@ export default async function Home() {
             <LoginForm />
           </div>
         )}
+
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+            Top Statuses
+          </h2>
+          {topStatuses.length === 0 ? (
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+              No statuses yet.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {topStatuses.map((s) => (
+                <div
+                  key={s.status}
+                  className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-full px-3 py-1"
+                >
+                  <span className="text-xl">{s.status}</span>
+                  <span className="text-zinc-500 dark:text-zinc-400 text-sm">
+                    {String(s.count)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">

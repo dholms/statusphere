@@ -18,6 +18,19 @@ export async function getRecentStatuses() {
   return statuses;
 }
 
+export async function getTopStatuses(limit = 10) {
+  const db = getDb();
+  const topStatuses = await db
+    .selectFrom("status")
+    .select(["status", db.fn.count("uri").as("count")])
+    .where("current", "=", 1)
+    .groupBy("status")
+    .orderBy("count", "desc")
+    .limit(limit)
+    .execute();
+  return topStatuses;
+}
+
 export async function getAccountStatus(did: string) {
   const db = getDb();
   const status = await db

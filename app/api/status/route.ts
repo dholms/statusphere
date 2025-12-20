@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@atproto/lex";
 import { getOAuthClient, getSession } from "@/lib/auth";
-import { Database, getDb } from "@/lib/db";
+import { insertStatus } from "@/lib/db/queries";
 
 import * as xyz from "@/lib/lexicons/xyz";
 
@@ -30,27 +30,13 @@ export async function POST(request: NextRequest) {
   });
 
   // Optimistic write to local DB
-  const db = getDb();
-  await db.transaction().execute(async (tx) => {
-    await tx
-      .insertInto("status")
-      .values({
-        uri: res.uri,
-        authorDid: session.did,
-        status,
-        current: 0,
-        createdAt,
-        indexedAt: new Date().toISOString(),
-      })
-      .onConflict((oc) =>
-        oc.column("uri").doUpdateSet({
-          status,
-          createdAt,
-          indexedAt: new Date().toISOString(),
-        }),
-      )
-      .execute();
-    await setCurrStatus(tx, session.did);
+  await insertStatus({
+    uri: res.uri,
+    authorDid: session.did,
+    status,
+    current: 1,
+    createdAt,
+    indexedAt: createdAt,
   });
 
   return NextResponse.json({
@@ -60,24 +46,3 @@ export async function POST(request: NextRequest) {
     cid: res.cid,
   });
 }
-
-const setCurrStatus = async (tx: Database, did: string) => {
-  await tx
-    .updateTable("status")
-    .set({ current: 0 })
-    .where("authorDid", "=", did)
-    .where("current", "=", 1)
-    .execute();
-  await tx
-    .updateTable("status")
-    .set({ current: 1 })
-    .where("uri", "=", (db) =>
-      db
-        .selectFrom("status")
-        .select("uri")
-        .where("authorDid", "=", did)
-        .orderBy("createdAt", "desc")
-        .limit(1),
-    )
-    .execute();
-};

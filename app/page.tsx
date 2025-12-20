@@ -1,76 +1,19 @@
 import { getSession } from "@/lib/auth";
-import { getDb } from "@/lib/db";
 import { LoginForm } from "@/components/LoginForm";
 import { LogoutButton } from "@/components/LogoutButton";
 import { StatusPicker } from "@/components/StatusPicker";
-import { getTap } from "@/lib/tap";
-
-function timeAgo(dateString: string): string {
-  const now = Date.now();
-  const then = new Date(dateString).getTime();
-  const seconds = Math.floor((now - then) / 1000);
-
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
-}
-
-async function getStatuses() {
-  const db = getDb();
-  const statuses = await db
-    .selectFrom("status")
-    .innerJoin("account", "status.authorDid", "account.did")
-    .selectAll()
-    .where("current", "=", 1)
-    .orderBy("createdAt", "desc")
-    .limit(20)
-    .execute();
-  return statuses;
-}
-
-async function getMyStatus(did: string) {
-  const db = getDb();
-  const status = await db
-    .selectFrom("status")
-    .selectAll()
-    .where("authorDid", "=", did)
-    .orderBy("createdAt", "desc")
-    .limit(1)
-    .executeTakeFirst();
-  return status ?? null;
-}
-
-async function getHandle(did: string) {
-  const db = getDb();
-  const account = await db
-    .selectFrom("account")
-    .select("handle")
-    .where("did", "=", did)
-    .executeTakeFirst();
-  if (account) {
-    return account.handle;
-  }
-  const info = await getTap().getRepoInfo(did);
-  await db
-    .insertInto("account")
-    .values({
-      did,
-      handle: info.handle,
-      active: 1,
-    })
-    .execute();
-  return info.handle;
-}
+import { timeAgo } from "@/lib/util";
+import {
+  getAccountHandle,
+  getAccountStatus,
+  getRecentStatuses,
+} from "@/lib/db/queries";
 
 export default async function Home() {
   const session = await getSession();
-  const statuses = await getStatuses();
-  const myStatus = session ? await getMyStatus(session.did) : null;
-  const myHandle = session ? await getHandle(session.did) : null;
+  const statuses = await getRecentStatuses();
+  const accntStatus = session ? await getAccountStatus(session.did) : null;
+  const accntHandle = session ? await getAccountHandle(session.did) : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -92,14 +35,14 @@ export default async function Home() {
                   Signed in as
                 </p>
                 <p className="font-mono text-sm text-zinc-900 dark:text-zinc-100 break-all">
-                  {myHandle}
+                  {accntHandle}
                 </p>
               </div>
               <LogoutButton />
             </div>
 
             <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <StatusPicker currentStatus={myStatus?.status} />
+              <StatusPicker currentStatus={accntStatus?.status} />
             </div>
           </div>
         ) : (

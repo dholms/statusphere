@@ -5,7 +5,7 @@ import { getOAuthClient } from "@/lib/auth/client";
 // POST /oauth/logout
 // Revokes the session and clears the cookie
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const cookieStore = await cookies();
     const did = cookieStore.get("did")?.value;

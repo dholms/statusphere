@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const EMOJIS = ["😊", "😴", "🤔", "🎉", "💻"];
 
@@ -9,6 +10,7 @@ interface StatusPickerProps {
 }
 
 export function StatusPicker({ currentStatus }: StatusPickerProps) {
+  const router = useRouter();
   const [selected, setSelected] = useState<string | null>(currentStatus ?? null);
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +28,8 @@ export function StatusPicker({ currentStatus }: StatusPickerProps) {
       if (!res.ok) {
         throw new Error("Failed to update status");
       }
+
+      router.refresh();
     } catch (err) {
       console.error("Failed to update status:", err);
     } finally {

@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { LoginForm } from "@/components/LoginForm";
 import { LogoutButton } from "@/components/LogoutButton";
 import { StatusPicker } from "@/components/StatusPicker";
+import { getTap } from "@/lib/tap";
 
 function timeAgo(dateString: string): string {
   const now = Date.now();
@@ -43,10 +44,33 @@ async function getMyStatus(did: string) {
   return status ?? null;
 }
 
+async function getHandle(did: string) {
+  const db = getDb();
+  const account = await db
+    .selectFrom("account")
+    .select("handle")
+    .where("did", "=", did)
+    .executeTakeFirst();
+  if (account) {
+    return account.handle;
+  }
+  const info = await getTap().getRepoInfo(did);
+  await db
+    .insertInto("account")
+    .values({
+      did,
+      handle: info.handle,
+      active: 1,
+    })
+    .execute();
+  return info.handle;
+}
+
 export default async function Home() {
   const session = await getSession();
   const statuses = await getStatuses();
   const myStatus = session ? await getMyStatus(session.did) : null;
+  const myHandle = session ? await getHandle(session.did) : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -56,7 +80,7 @@ export default async function Home() {
             Statusphere
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Set your status on the ATmosphere
+            Set your status on the Atmosphere
           </p>
         </div>
 
@@ -68,7 +92,7 @@ export default async function Home() {
                   Signed in as
                 </p>
                 <p className="font-mono text-sm text-zinc-900 dark:text-zinc-100 break-all">
-                  {session.did}
+                  {myHandle}
                 </p>
               </div>
               <LogoutButton />

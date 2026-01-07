@@ -16,7 +16,7 @@ export function getOAuthClient(): NodeOAuthClient {
       clientMetadata: atprotoLoopbackClientMetadata(
         `http://localhost?${new URLSearchParams([
           ["redirect_uri", `http://127.0.0.1:3000/oauth/callback`],
-          ["scope", `atproto transition:generic`],
+          ["scope", `atproto repo:xyz.statusphere.status`],
         ])}`,
       ),
 

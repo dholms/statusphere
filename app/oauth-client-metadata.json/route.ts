@@ -18,7 +18,7 @@ export async function GET() {
     redirect_uris: [`${PUBLIC_URL}/oauth/callback`],
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
-    scope: "atproto transition:generic",
+    scope: "atproto repo:xyz.statusphere.status",
     token_endpoint_auth_method: "none", // Public client (no client secret)
     application_type: "web",
     dpop_bound_access_tokens: true,

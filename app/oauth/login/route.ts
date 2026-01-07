@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // This resolves the handle, finds their authorization server,
     // and returns the URL to redirect the user to
     const authUrl = await client.authorize(handle, {
-      scope: "atproto transition:generic",
+      scope: "atproto repo:xyz.statusphere.status",
       // Optional: pass state that will be returned in the callback
       // state: "your-custom-state",
     });

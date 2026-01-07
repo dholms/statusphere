@@ -8,7 +8,6 @@ import type {
 } from "@atproto/oauth-client-node";
 import { getDb } from "@/lib/db";
 
-// Singleton pattern - OAuth client should only be instantiated once
 let client: NodeOAuthClient | null = null;
 
 export function getOAuthClient(): NodeOAuthClient {
@@ -45,10 +44,7 @@ export function getOAuthClient(): NodeOAuthClient {
         },
         async del(key: string) {
           const db = getDb();
-          await db
-            .deleteFrom("auth_state")
-            .where("key", "=", key)
-            .execute();
+          await db.deleteFrom("auth_state").where("key", "=", key).execute();
         },
       },
 
@@ -76,10 +72,7 @@ export function getOAuthClient(): NodeOAuthClient {
         },
         async del(key: string) {
           const db = getDb();
-          await db
-            .deleteFrom("auth_session")
-            .where("key", "=", key)
-            .execute();
+          await db.deleteFrom("auth_session").where("key", "=", key).execute();
         },
       },
     });

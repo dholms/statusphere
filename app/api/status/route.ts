@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@atproto/lex";
 import { getOAuthClient, getSession } from "@/lib/auth";
 import { insertStatus } from "@/lib/db/queries";
-
 import * as xyz from "@/lib/lexicons/xyz";
-
-// POST /api/status
-// Body: { status: "😊" }
 
 export async function POST(request: NextRequest) {
   const session = await getSession();

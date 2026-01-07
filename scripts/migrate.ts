@@ -16,20 +16,10 @@ async function migrate() {
     provider: { getMigrations: async () => migrations },
   });
 
-  console.log("Running migrations...");
-  const { error, results } = await migrator.migrateToLatest();
-
-  results?.forEach((result) => {
-    if (result.status === "Success") {
-      console.log(`✓ ${result.migrationName}`);
-    } else if (result.status === "Error") {
-      console.error(`✗ ${result.migrationName}`);
-    }
-  });
+  const { error } = await migrator.migrateToLatest();
 
   if (error) {
-    console.error("Migration failed:", error);
-    process.exit(1);
+    throw error;
   }
 
   console.log("Migrations complete.");

@@ -14,8 +14,8 @@ export default async function Home() {
   const session = await getSession();
   const statuses = await getRecentStatuses();
   const topStatuses = await getTopStatuses();
-  const accntStatus = session ? await getAccountStatus(session.did) : null;
-  const accntHandle = session ? await getAccountHandle(session.did) : null;
+  const accountStatus = session ? await getAccountStatus(session.did) : null;
+  const accountHandle = session ? await getAccountHandle(session.did) : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -37,14 +37,14 @@ export default async function Home() {
                   Signed in as
                 </p>
                 <p className="font-mono text-sm text-zinc-900 dark:text-zinc-100 break-all">
-                  {accntHandle ?? "handle.invalid"}
+                  {accountHandle ?? "handle.invalid"}
                 </p>
               </div>
               <LogoutButton />
             </div>
 
             <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <StatusPicker currentStatus={accntStatus?.status} />
+              <StatusPicker currentStatus={accountStatus?.status} />
             </div>
           </div>
         ) : (

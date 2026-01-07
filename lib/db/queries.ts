@@ -2,6 +2,7 @@ import { getDb, Database } from "./index";
 import { getTap } from "@/lib/tap";
 import { AccountTable, StatusTable } from "./schema";
 import { AtUri } from "@atproto/syntax";
+import { getHandle } from "@atproto/common";
 
 // Read queries
 
@@ -13,7 +14,7 @@ export async function getRecentStatuses() {
     .selectAll()
     .where("current", "=", 1)
     .orderBy("createdAt", "desc")
-    .limit(20)
+    .limit(5)
     .execute();
   return statuses;
 }
@@ -43,7 +44,7 @@ export async function getAccountStatus(did: string) {
   return status ?? null;
 }
 
-export async function getAccountHandle(did: string) {
+export async function getAccountHandle(did: string): Promise<string | null> {
   const db = getDb();
   const account = await db
     .selectFrom("account")
@@ -53,16 +54,14 @@ export async function getAccountHandle(did: string) {
   if (account) {
     return account.handle;
   }
-  const info = await getTap().getRepoInfo(did);
-  await db
-    .insertInto("account")
-    .values({
-      did,
-      handle: info.handle,
-      active: 1,
-    })
-    .execute();
-  return info.handle;
+
+  try {
+    const didDoc = await getTap().resolveDid(did);
+    if (!didDoc) return null;
+    return getHandle(didDoc) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // Write queries

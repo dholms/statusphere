@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@atproto/common':
+    specifier: ^0.5.6
+    version: 0.5.6
   '@atproto/lex':
     specifier: ^0.0.6
     version: 0.0.6
@@ -139,6 +142,14 @@ packages:
     resolution: {integrity: sha512-nOb6ONKBRJHRlukW1sVawUkBqReLlLx6hT35VS3imaNPwiXDxLnTK7lxw3Lrl9k5yugSBDQAkZAq3MPTEFSUBQ==}
     dev: false
 
+  /@atproto/common-web@0.4.10:
+    resolution: {integrity: sha512-TLDZSgSKzT8ZgOrBrTGK87J1CXve9TEuY6NVVUBRkOMzRRtQzpFb9/ih5WVS/hnaWVvE30CfuyaetRoma+WKNw==}
+    dependencies:
+      '@atproto/lex-data': 0.0.6
+      '@atproto/lex-json': 0.0.6
+      zod: 3.25.76
+    dev: false
+
   /@atproto/common-web@0.4.7:
     resolution: {integrity: sha512-vjw2+81KPo2/SAbbARGn64Ln+6JTI0FTI4xk8if0ebBfDxFRmHb2oSN1y77hzNq/ybGHqA2mecfhS03pxC5+lg==}
     dependencies:
@@ -147,13 +158,13 @@ packages:
       zod: 3.25.76
     dev: false
 
-  /@atproto/common@0.5.3:
-    resolution: {integrity: sha512-jMC9ikl8QbJcnh21upe9Gb9mIaSJWsdp8sgaelmntUtChWnxxvCC/pI3TBX11PT7XlHUE6UyuvY+S3hh6WZVEg==}
+  /@atproto/common@0.5.6:
+    resolution: {integrity: sha512-rbWoZwHQNP8jcwjCREVecchw8aaoM5A1NCONyb9PVDWOJLRLCzojYMeIS8IbFqXo6NyIByOGddupADkkLeVBGQ==}
     engines: {node: '>=18.7.0'}
     dependencies:
-      '@atproto/common-web': 0.4.7
-      '@atproto/lex-cbor': 0.0.3
-      '@atproto/lex-data': 0.0.3
+      '@atproto/common-web': 0.4.10
+      '@atproto/lex-cbor': 0.0.6
+      '@atproto/lex-data': 0.0.6
       iso-datestring-validator: 2.2.2
       multiformats: 9.9.0
       pino: 8.21.0
@@ -214,6 +225,14 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@atproto/lex-cbor@0.0.6:
+    resolution: {integrity: sha512-lee2T00owDy3I1plRHuURT6f98NIpYZZr2wXa5pJZz5JzefZ+nv8gJ2V70C2f+jmSG+5S9NTIy4uJw94vaHf4A==}
+    dependencies:
+      '@atproto/lex-data': 0.0.6
+      multiformats: 9.9.0
+      tslib: 2.8.1
+    dev: false
+
   /@atproto/lex-client@0.0.4:
     resolution: {integrity: sha512-tGaenywYo6IvzKKMYuZB+sMBQNDkQ53PLz/NM0WeXnaa/e58VhOGzwVLnNSI/QR9qLlwHFfMf8AIFZyAVHBWCw==}
     dependencies:
@@ -225,6 +244,16 @@ packages:
 
   /@atproto/lex-data@0.0.3:
     resolution: {integrity: sha512-ivo1IpY/EX+RIpxPgCf4cPhQo5bfu4nrpa1vJCt8hCm9SfoonJkDFGa0n4SMw4JnXZoUcGcrJ46L+D8bH6GI2g==}
+    dependencies:
+      '@atproto/syntax': 0.4.2
+      multiformats: 9.9.0
+      tslib: 2.8.1
+      uint8arrays: 3.0.0
+      unicode-segmenter: 0.14.4
+    dev: false
+
+  /@atproto/lex-data@0.0.6:
+    resolution: {integrity: sha512-MBNB4ghRJQzuXK1zlUPljpPbQcF1LZ5dzxy274KqPt4p3uPuRw0mHjgcCoWzRUNBQC685WMQR4IN9DHtsnG57A==}
     dependencies:
       '@atproto/syntax': 0.4.2
       multiformats: 9.9.0
@@ -258,6 +287,13 @@ packages:
     resolution: {integrity: sha512-ZVcY7XlRfdPYvQQ2WroKUepee0+NCovrSXgXURM3Xv+n5jflJCoczguROeRr8sN0xvT0ZbzMrDNHCUYKNnxcjw==}
     dependencies:
       '@atproto/lex-data': 0.0.3
+      tslib: 2.8.1
+    dev: false
+
+  /@atproto/lex-json@0.0.6:
+    resolution: {integrity: sha512-EILnN5cditPvf+PCNjXt7reMuzjugxAL1fpSzmzJbEMGMUwxOf5pPWxRsaA/M3Boip4NQZ+6DVrPOGUMlnqceg==}
+    dependencies:
+      '@atproto/lex-data': 0.0.6
       tslib: 2.8.1
     dev: false
 
@@ -349,7 +385,7 @@ packages:
     resolution: {integrity: sha512-QpVTVulgfz5PUiCTELlDBiRvnsnwrFWi+6CfY88VwXzrRHd9NE8GItK7sfxQ6U65vD/idH8ddCgFrlrsn1REPQ==}
     engines: {node: '>=18.7.0'}
     dependencies:
-      '@atproto/common': 0.5.3
+      '@atproto/common': 0.5.6
       '@atproto/common-web': 0.4.7
       '@atproto/crypto': 0.4.5
       '@atproto/lexicon': 0.6.0
@@ -368,7 +404,7 @@ packages:
     resolution: {integrity: sha512-CrfJWrvozuSIokOQLMeSFcF5ZpstpxIZ9PnBpgIkbLQQKb3wO+0dn90xZN5jlLjczPHvT4PrF1z8uYgVlujTlg==}
     engines: {node: '>=18.7.0'}
     dependencies:
-      '@atproto/common': 0.5.3
+      '@atproto/common': 0.5.6
       '@atproto/syntax': 0.4.2
       '@atproto/ws-client': 0.0.4
       ws: 8.18.3
@@ -382,7 +418,7 @@ packages:
     resolution: {integrity: sha512-dox1XIymuC7/ZRhUqKezIGgooZS45C6vHCfu0PnWjfvsLCK2kAlnvX4IBkA/WpcoijDhQ9ejChnFbo/sLmgvAg==}
     engines: {node: '>=18.7.0'}
     dependencies:
-      '@atproto/common': 0.5.3
+      '@atproto/common': 0.5.6
       ws: 8.18.3
     transitivePeerDependencies:
       - bufferutil

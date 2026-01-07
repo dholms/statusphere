@@ -37,7 +37,7 @@ export default async function Home() {
                   Signed in as
                 </p>
                 <p className="font-mono text-sm text-zinc-900 dark:text-zinc-100 break-all">
-                  {accntHandle}
+                  {accntHandle ?? "handle.invalid"}
                 </p>
               </div>
               <LogoutButton />

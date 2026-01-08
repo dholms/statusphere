@@ -8,6 +8,7 @@
     "build": "pnpm build:lex && next build",
     "start": "pnpm migrate && next start --port ${PORT-3000}",
     "migrate": "tsx scripts/migrate.ts",
+    "gen-key": "tsx scripts/gen-key.ts",
     "lint": "eslint"
   },
   "dependencies": {

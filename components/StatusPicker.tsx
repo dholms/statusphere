@@ -3,34 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const EMOJIS = [
-  "👍",
-  "👎",
-  "💙",
-  "🥹",
-  "😧",
-  "🙃",
-  "😉",
-  "😎",
-  "🤓",
-  "🤨",
-  "🥳",
-  "😭",
-  "😤",
-  "🤯",
-  "🫡",
-  "💀",
-  "✊",
-  "🤘",
-  "👀",
-  "🧠",
-  "👩‍💻",
-  "🧑‍💻",
-  "🥷",
-  "🧌",
-  "🦋",
-  "🚀",
-];
+const EMOJIS = process.env.EMOJIS
+  ? process.env.EMOJIS.split(",")
+  : ["👍", "👎", "💙", "😎", "🦋", "🚀"];
 
 interface StatusPickerProps {
   currentStatus?: string | null;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseTapEvent } from "@atproto/tap";
+import { parseTapEvent, assureAdminAuth } from "@atproto/tap";
 import { AtUri } from "@atproto/syntax";
 import * as xyz from "@/lib/lexicons/xyz";
 import {
@@ -9,7 +9,21 @@ import {
   deleteAccount,
 } from "@/lib/db/queries";
 
+const TAP_ADMIN_PASSWORD = process.env.TAP_ADMIN_PASSWORD;
+
 export async function POST(request: NextRequest) {
+  if (TAP_ADMIN_PASSWORD) {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    try {
+      assureAdminAuth(TAP_ADMIN_PASSWORD, authHeader);
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const body = await request.json();
   const evt = parseTapEvent(body);
   if (evt.type === "identity") {

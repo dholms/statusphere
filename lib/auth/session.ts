@@ -16,7 +16,7 @@ export async function getSession(): Promise<OAuthSession | null> {
   }
 
   try {
-    const client = getOAuthClient();
+    const client = await getOAuthClient();
     // Restore the session from the store
     // This will refresh the token if needed
     const session = await client.restore(did);

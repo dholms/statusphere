@@ -11,7 +11,7 @@ export async function POST() {
     const did = cookieStore.get("did")?.value;
 
     if (did) {
-      const client = getOAuthClient();
+      const client = await getOAuthClient();
       // Revoke the session (tells the PDS to invalidate tokens)
       await client.revoke(did);
     }

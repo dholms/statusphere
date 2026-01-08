@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = getOAuthClient();
+    const client = await getOAuthClient();
 
     // This resolves the handle, finds their authorization server,
     // and returns the URL to redirect the user to

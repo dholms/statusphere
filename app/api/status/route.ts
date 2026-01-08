@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Status is required" }, { status: 400 });
   }
 
-  const oauthSession = await getOAuthClient().restore(session.did);
+  const client = await getOAuthClient();
+  const oauthSession = await client.restore(session.did);
   const lexClient = new Client(oauthSession);
 
   const createdAt = new Date().toISOString();

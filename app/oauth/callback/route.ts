@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOAuthClient } from "@/lib/auth/client";
 
+const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3000";
+
 // GET /oauth/callback?code=...&state=...&iss=...
 // This is where the authorization server redirects after user approves
 
@@ -8,14 +10,14 @@ export async function GET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams;
 
-    const client = getOAuthClient();
+    const client = await getOAuthClient();
 
     // Exchange the authorization code for a session
     // This also validates the state and PKCE
     const { session } = await client.callback(params);
 
     // Redirect to home page after successful login
-    const response = NextResponse.redirect(new URL("http://127.0.0.1:3000/"));
+    const response = NextResponse.redirect(new URL("/", PUBLIC_URL));
 
     // Set the DID cookie on the response
     response.cookies.set("did", session.did, {
@@ -30,6 +32,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("OAuth callback error:", error);
 
-    return NextResponse.redirect(new URL("http://127.0.0.1:3000/?error=login_failed"));
+    return NextResponse.redirect(new URL("/?error=login_failed", PUBLIC_URL));
   }
 }

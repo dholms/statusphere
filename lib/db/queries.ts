@@ -2,7 +2,7 @@ import { getDb, Database } from "./index";
 import { getTap } from "@/lib/tap";
 import { AccountTable, StatusTable } from "./schema";
 import { AtUri } from "@atproto/syntax";
-import { getHandle } from "@atproto/common";
+import { getHandle } from "@atproto/common-web";
 
 // Read queries
 

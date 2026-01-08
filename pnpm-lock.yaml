@@ -5,9 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
-  '@atproto/common':
-    specifier: ^0.5.6
-    version: 0.5.6
+  '@atproto/common-web':
+    specifier: ^0.4.10
+    version: 0.4.10
   '@atproto/lex':
     specifier: ^0.0.6
     version: 0.0.6
@@ -147,14 +147,6 @@ packages:
     dependencies:
       '@atproto/lex-data': 0.0.6
       '@atproto/lex-json': 0.0.6
-      zod: 3.25.76
-    dev: false
-
-  /@atproto/common-web@0.4.7:
-    resolution: {integrity: sha512-vjw2+81KPo2/SAbbARGn64Ln+6JTI0FTI4xk8if0ebBfDxFRmHb2oSN1y77hzNq/ybGHqA2mecfhS03pxC5+lg==}
-    dependencies:
-      '@atproto/lex-data': 0.0.3
-      '@atproto/lex-json': 0.0.3
       zod: 3.25.76
     dev: false
 
@@ -333,7 +325,7 @@ packages:
   /@atproto/lexicon@0.6.0:
     resolution: {integrity: sha512-5veb8aD+J5M0qszLJ+73KSFsFrJBgAY/nM1TSAJvGY7fNc9ZAT+PSUlmIyrdye9YznAZ07yktalls/TwNV7cHQ==}
     dependencies:
-      '@atproto/common-web': 0.4.7
+      '@atproto/common-web': 0.4.10
       '@atproto/syntax': 0.4.2
       iso-datestring-validator: 2.2.2
       multiformats: 9.9.0
@@ -386,7 +378,7 @@ packages:
     engines: {node: '>=18.7.0'}
     dependencies:
       '@atproto/common': 0.5.6
-      '@atproto/common-web': 0.4.7
+      '@atproto/common-web': 0.4.10
       '@atproto/crypto': 0.4.5
       '@atproto/lexicon': 0.6.0
       '@ipld/dag-cbor': 7.0.3

@@ -70,7 +70,7 @@ export function LoginForm() {
                    disabled:opacity-50 disabled:cursor-not-allowed
                    transition-colors"
       >
-        {loading ? "Signing in..." : "Sign in with Bluesky"}
+        {loading ? "Logging in..." : "Login"}
       </button>
     </form>
   );

@@ -21,6 +21,7 @@ export async function GET() {
     response_types: ["code"],
     scope: "atproto repo:xyz.statusphere.status",
     token_endpoint_auth_method: "private_key_jwt",
+    token_endpoint_auth_signing_alg: "ES256",
     application_type: "web",
     dpop_bound_access_tokens: true,
   });

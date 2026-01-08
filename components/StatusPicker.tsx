@@ -3,7 +3,34 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const EMOJIS = ["😊", "😴", "🤔", "🎉", "💻", "💙"];
+const EMOJIS = [
+  "👍",
+  "👎",
+  "💙",
+  "🥹",
+  "😧",
+  "🙃",
+  "😉",
+  "😎",
+  "🤓",
+  "🤨",
+  "🥳",
+  "😭",
+  "😤",
+  "🤯",
+  "🫡",
+  "💀",
+  "✊",
+  "🤘",
+  "👀",
+  "🧠",
+  "👩‍💻",
+  "🧑‍💻",
+  "🥷",
+  "🧌",
+  "🦋",
+  "🚀",
+];
 
 interface StatusPickerProps {
   currentStatus?: string | null;
@@ -44,7 +71,7 @@ export function StatusPicker({ currentStatus }: StatusPickerProps) {
       <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
         Set your status
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {EMOJIS.map((emoji) => (
           <button
             key={emoji}

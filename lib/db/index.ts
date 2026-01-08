@@ -6,9 +6,11 @@ let _db: Kysely<DatabaseSchema> | null = null;
 
 export type Database = Kysely<DatabaseSchema>;
 
+const DATABASE_PATH = process.env.DATABASE_PATH || "statusphere.db";
+
 export const getDb = (): Kysely<DatabaseSchema> => {
   if (!_db) {
-    const sqlite = new Database("statusphere.db");
+    const sqlite = new Database(DATABASE_PATH);
     sqlite.pragma("journal_mode = WAL");
 
     _db = new Kysely<DatabaseSchema>({

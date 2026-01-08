@@ -3,8 +3,10 @@ import { Kysely, Migrator, SqliteDialect } from "kysely";
 import { migrations } from "../lib/db/migrations";
 import { DatabaseSchema } from "../lib/db/schema";
 
+const DATABASE_PATH = process.env.DATABASE_PATH || "statusphere.db";
+
 async function migrate() {
-  const sqlite = new Database("statusphere.db");
+  const sqlite = new Database(DATABASE_PATH);
   sqlite.pragma("journal_mode = WAL");
 
   const db = new Kysely<DatabaseSchema>({

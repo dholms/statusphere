@@ -21,59 +21,36 @@ pnpm add @atproto/common-web @atproto/lex @atproto/syntax @atproto/tap
 ```
 
 **What these do:**
-- `@atproto/common-web` - DID document parsing utilities
+- `@atproto/common-web` - Basic AT Protocol utilities including DID document parsing
 - `@atproto/lex` - Lexicon (schema) generation and validation
 - `@atproto/syntax` - AT Protocol URI parsing
 - `@atproto/tap` - Client library for TAP real-time sync
+
+### 1.3 Install the Lexicon CLI Tool
+
+```bash
+npm install -g @atproto/lex
+```
+
+The Lexicon CLI tool can be run using the `lex` command, however this command might conflict with other binaries installed on your system. If that happens, you can also run the CLI using `ts-lex`.
 
 ---
 
 ## Part 2: Lexicons (Data Schema)
 
-Lexicons define the schema for records in AT Protocol. Think of them like database schemas, but for decentralized data.
+Lexicons define the schema for records in AT Protocol.
 
-### 2.1 Define Your Lexicon
+### 2.1 Install the Statusphere lexicon
 
-Create `lexicons/xyz/statusphere/status.json`:
-
-```json
-{
-  "lexicon": 1,
-  "$type": "com.atproto.lexicon.schema",
-  "id": "xyz.statusphere.status",
-  "defs": {
-    "main": {
-      "type": "record",
-      "key": "tid",
-      "record": {
-        "type": "object",
-        "required": ["status", "createdAt"],
-        "properties": {
-          "status": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 32,
-            "maxGraphemes": 1
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "datetime"
-          }
-        }
-      }
-    }
-  }
-}
+```bash
+ts-lex install xyz.statusphere.status
 ```
 
-**What this defines:**
-- A record type with ID `xyz.statusphere.status`
-- Contains a single emoji (`maxGraphemes: 1`) and timestamp
-- `key: "tid"` means records are identified by timestamp-based IDs
+Note the downloaded lexicon file at `lib/lexicons/xyz.statusphere.status.json`.
 
 ### 2.2 Generate TypeScript Code
 
-Add to `package.json` scripts:
+Add to `package.json` scripts for building the lexicon definitions into Typescript code:
 
 ```json
 {
@@ -92,15 +69,15 @@ pnpm build:lex
 
 This generates TypeScript in `lib/lexicons/` with validators and types.
 
+The recommendation is to check the Lexicon schema files into git but not generated code into git. 
+
 ### 2.3 Update OAuth Scope
 
-Update the `SCOPE` constant in `lib/auth/client.ts` to request access to your lexicon:
+We're going to be working with records in the `xyz.statusphere.status` collection for our users, so let's update the `SCOPE` constant in `lib/auth/client.ts` to request access to this collection:
 
 ```typescript
 export const SCOPE = "atproto repo:xyz.statusphere.status";
 ```
-
-This tells the authorization server that your app needs write access to `xyz.statusphere.status` records.
 
 ---
 
@@ -125,7 +102,7 @@ export interface DatabaseSchema {
 export interface AccountTable {
   did: string;
   handle: string;
-  active: 0 | 1;
+  active: 0 | 1; 
 }
 
 export interface StatusTable {

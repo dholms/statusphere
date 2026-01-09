@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getOAuthClient } from "@/lib/auth/client";
 
-// POST /oauth/logout
-// Revokes the session and clears the cookie
-
 export async function POST() {
   try {
     const cookieStore = await cookies();
@@ -12,21 +9,15 @@ export async function POST() {
 
     if (did) {
       const client = await getOAuthClient();
-      // Revoke the session (tells the PDS to invalidate tokens)
       await client.revoke(did);
     }
 
-    // Clear the cookie
     cookieStore.delete("did");
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Logout error:", error);
-
-    // Still clear the cookie even if revoke fails
     const cookieStore = await cookies();
     cookieStore.delete("did");
-
     return NextResponse.json({ success: true });
   }
 }

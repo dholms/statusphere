@@ -1,8 +1,9 @@
-import { Migration } from "kysely";
+import { Kysely, Migration, Migrator } from "kysely";
+import { getDb } from ".";
 
-export const migrations: Record<string, Migration> = {
+const migrations: Record<string, Migration> = {
   "001": {
-    async up(db) {
+    async up(db: Kysely<unknown>) {
       await db.schema
         .createTable("auth_state")
         .addColumn("key", "text", (col) => col.primaryKey())
@@ -38,7 +39,7 @@ export const migrations: Record<string, Migration> = {
         .columns(["current", "indexedAt"])
         .execute();
     },
-    async down(db) {
+    async down(db: Kysely<unknown>) {
       await db.schema.dropTable("status").execute();
       await db.schema.dropTable("account").execute();
       await db.schema.dropTable("auth_session").execute();
@@ -46,3 +47,13 @@ export const migrations: Record<string, Migration> = {
     },
   },
 };
+
+export function getMigrator() {
+  const db = getDb();
+  return new Migrator({
+    db,
+    provider: {
+      getMigrations: async () => migrations,
+    },
+  });
+}

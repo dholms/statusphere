@@ -1,65 +1,62 @@
 import {
-  atprotoLoopbackClientMetadata,
-  Keyset,
+  DEFAULT_LOOPBACK_CLIENT_REDIRECT_URIS,
   JoseKey,
+  Keyset,
   NodeOAuthClient,
-  OAuthClientMetadataInput,
+  buildAtprotoLoopbackClientMetadata,
 } from "@atproto/oauth-client-node";
 import type {
   NodeSavedSession,
   NodeSavedState,
+  OAuthClientMetadataInput,
 } from "@atproto/oauth-client-node";
-import { getDb } from "@/lib/db";
+import { getDb } from "../db";
+
+export const SCOPE = "atproto repo:xyz.statusphere.status";
+
+let client: NodeOAuthClient | null = null;
 
 const PUBLIC_URL = process.env.PUBLIC_URL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
-let client: NodeOAuthClient | null = null;
+function getClientMetadata(): OAuthClientMetadataInput {
+  if (PUBLIC_URL) {
+    return {
+      client_id: `${PUBLIC_URL}/oauth-client-metadata.json`,
+      client_name: "Statusphere",
+      client_uri: PUBLIC_URL,
+      redirect_uris: [`${PUBLIC_URL}/oauth/callback`],
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      scope: SCOPE,
+      token_endpoint_auth_method: "private_key_jwt" as const,
+      token_endpoint_auth_signing_alg: "ES256" as const,
+      jwks_uri: `${PUBLIC_URL}/.well-known/jwks.json`,
+      dpop_bound_access_tokens: true,
+    };
+  } else {
+    return buildAtprotoLoopbackClientMetadata({
+      scope: SCOPE,
+      redirect_uris: DEFAULT_LOOPBACK_CLIENT_REDIRECT_URIS,
+    });
+  }
+}
+
+async function getKeyset(): Promise<Keyset | undefined> {
+  if (PUBLIC_URL && PRIVATE_KEY) {
+    return new Keyset([await JoseKey.fromJWK(JSON.parse(PRIVATE_KEY))]);
+  } else {
+    return undefined;
+  }
+}
 
 export async function getOAuthClient(): Promise<NodeOAuthClient> {
   if (client) return client;
 
-  // For production: use confidential client with private key
-  // For development: use loopback client (localhost only)
-  const keyset =
-    PUBLIC_URL && PRIVATE_KEY
-      ? new Keyset([await JoseKey.fromJWK(JSON.parse(PRIVATE_KEY))])
-      : undefined;
-
-  if (PUBLIC_URL && !keyset?.size) {
-    throw new Error(
-      "PRIVATE_KEY environment variable is required when PUBLIC_URL is set",
-    );
-  }
-
-  const clientMetadata: OAuthClientMetadataInput = PUBLIC_URL
-    ? {
-        client_name: "Statusphere",
-        client_id: `${PUBLIC_URL}/oauth-client-metadata.json`,
-        jwks_uri: `${PUBLIC_URL}/.well-known/jwks.json`,
-        redirect_uris: [`${PUBLIC_URL}/oauth/callback`],
-        scope: "atproto repo:xyz.statusphere.status",
-        grant_types: ["authorization_code", "refresh_token"],
-        response_types: ["code"],
-        application_type: "web",
-        token_endpoint_auth_method: "private_key_jwt",
-        token_endpoint_auth_signing_alg: keyset?.findPrivateKey({
-          usage: "sign",
-        })?.alg,
-        dpop_bound_access_tokens: true,
-      }
-    : atprotoLoopbackClientMetadata(
-        `http://localhost?${new URLSearchParams([
-          ["redirect_uri", `http://127.0.0.1:3000/oauth/callback`],
-          ["scope", `atproto repo:xyz.statusphere.status`],
-        ])}`,
-      );
-
   client = new NodeOAuthClient({
-    keyset,
-    clientMetadata,
+    clientMetadata: getClientMetadata(),
+    keyset: await getKeyset(),
 
-    // State store - temporary storage for OAuth state during authorization
     stateStore: {
       async get(key: string) {
         const db = getDb();
@@ -87,7 +84,6 @@ export async function getOAuthClient(): Promise<NodeOAuthClient> {
       },
     },
 
-    // Session store - persistent storage for user sessions
     sessionStore: {
       async get(key: string) {
         const db = getDb();

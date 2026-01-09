@@ -1,6 +1,6 @@
-import { getDb, Database } from "./index";
+import { Transaction } from "kysely";
+import { getDb, DatabaseSchema, AccountTable, StatusTable } from ".";
 import { getTap } from "@/lib/tap";
-import { AccountTable, StatusTable } from "./schema";
 import { AtUri } from "@atproto/syntax";
 import { getHandle } from "@atproto/common-web";
 
@@ -116,7 +116,7 @@ export async function deleteAccount(did: string) {
 }
 
 // expected inside of transaction
-async function setCurrStatus(tx: Database, did: string) {
+async function setCurrStatus(tx: Transaction<DatabaseSchema>, did: string) {
   await tx
     .updateTable("status")
     .set({ current: 0 })

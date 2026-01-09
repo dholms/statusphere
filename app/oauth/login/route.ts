@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOAuthClient } from "@/lib/auth/client";
-
-// POST /oauth/login
-// Body: { handle: "alice.bsky.social" }
-// Returns: { redirectUrl: "https://..." }
+import { getOAuthClient, SCOPE } from "@/lib/auth/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,12 +14,9 @@ export async function POST(request: NextRequest) {
 
     const client = await getOAuthClient();
 
-    // This resolves the handle, finds their authorization server,
-    // and returns the URL to redirect the user to
+    // Resolves handle, finds their auth server, returns authorization URL
     const authUrl = await client.authorize(handle, {
-      scope: "atproto repo:xyz.statusphere.status",
-      // Optional: pass state that will be returned in the callback
-      // state: "your-custom-state",
+      scope: SCOPE,
     });
 
     return NextResponse.json({ redirectUrl: authUrl.toString() });

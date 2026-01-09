@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { getOAuthClient } from "@/lib/auth/client";
+import { JoseKey } from "@atproto/oauth-client-node";
 
-// GET /.well-known/jwks.json
-// Serves the public keys for the OAuth client
-// Required for confidential clients using private_key_jwt authentication
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 export async function GET() {
-  const client = await getOAuthClient();
-  return NextResponse.json(client.jwks);
+  if (!PRIVATE_KEY) {
+    return NextResponse.json({ keys: [] });
+  }
+
+  const key = await JoseKey.fromJWK(JSON.parse(PRIVATE_KEY));
+  return NextResponse.json({
+    keys: [key.publicJwk],
+  });
 }

@@ -69,7 +69,7 @@ pnpm build:lex
 
 This generates TypeScript in `lib/lexicons/` with validators and types.
 
-The recommendation is to check the Lexicon schema files into git but not generated code into git. 
+The recommendation is to check the Lexicon schema files into git but not generated code into git.
 
 ### 2.3 Update OAuth Scope
 
@@ -102,7 +102,7 @@ export interface DatabaseSchema {
 export interface AccountTable {
   did: string;
   handle: string;
-  active: 0 | 1; 
+  active: 0 | 1;
 }
 
 export interface StatusTable {
@@ -148,71 +148,53 @@ const migrations: Record<string, Migration> = {
         .columns(["current", "indexedAt"])
         .execute();
     },
-    // ... down migration ...
+    async down(db: Kysely<unknown>) {
+      await db.schema.dropTable("status").execute();
+      await db.schema.dropTable("account").execute();
+      await db.schema.dropTable("auth_session").execute();
+      await db.schema.dropTable("auth_state").execute();
+    },
   },
 };
 ```
 
-### 3.3 Add Database Queries
+### 3.3 Create Queries File
 
-Create `lib/db/queries.ts`:
+Create an empty `lib/db/queries.ts` file that we'll add to as we build features:
 
 ```typescript
 import { getDb, AccountTable, StatusTable } from ".";
+```
 
-export async function getRecentStatuses() {
-  const db = getDb();
-  return db
-    .selectFrom("status")
-    .innerJoin("account", "status.authorDid", "account.did")
-    .selectAll()
-    .where("current", "=", 1)
-    .orderBy("createdAt", "desc")
-    .limit(5)
-    .execute();
-}
+### 3.4 Run Migrations
 
-export async function getAccountStatus(did: string) {
-  const db = getDb();
-  const status = await db
-    .selectFrom("status")
-    .selectAll()
-    .where("authorDid", "=", did)
-    .orderBy("createdAt", "desc")
-    .limit(1)
-    .executeTakeFirst();
-  return status ?? null;
-}
+```bash
+pnpm migrate
+```
 
+---
+
+## Part 4: Status Submission
+
+Now let's build the feature that lets users set their status.
+
+### 4.1 Add Write Queries
+
+First, add the queries we need for saving statuses. Add to `lib/db/queries.ts`:
+
+```typescript
 export async function insertStatus(data: StatusTable) {
-  // Insert and update current status tracking
-  getDb()
-    .transaction()
-    .execute(async (tx) => {
-      await tx
-        .insertInto("status")
-        .values(data)
-        .onConflict((oc) =>
-          oc.column("uri").doUpdateSet({
-            status: data.status,
-            createdAt: data.createdAt,
-            indexedAt: data.indexedAt,
-          }),
-        )
-        .execute();
-      // Mark this as current, unmark others
-      await tx
-        .updateTable("status")
-        .set({ current: 0 })
-        .where("authorDid", "=", data.authorDid)
-        .where("current", "=", 1)
-        .execute();
-      await tx
-        .updateTable("status")
-        .set({ current: 1 })
-        .where("uri", "=", data.uri)
-        .execute();
-    });
+  await getDb()
+    .insertInto("status")
+    .values(data)
+    .onConflict((oc) =>
+      oc.column("uri").doUpdateSet({
+        status: data.status,
+        createdAt: data.createdAt,
+        indexedAt: data.indexedAt,
+      }),
+    )
+    .execute();
 }
 
 export async function upsertAccount(data: AccountTable) {
@@ -229,17 +211,7 @@ export async function upsertAccount(data: AccountTable) {
 }
 ```
 
-Run migrations:
-
-```bash
-pnpm migrate
-```
-
----
-
-## Part 4: Status Submission
-
-### 4.1 Status API Route
+### 4.2 Status API Route
 
 Create `app/api/status/route.ts`:
 
@@ -302,7 +274,7 @@ export async function POST(request: NextRequest) {
 - Use generated lexicon to create a record on their PDS
 - Save locally for immediate display
 
-### 4.2 Status Picker Component
+### 4.3 Status Picker Component
 
 Create `components/StatusPicker.tsx`:
 
@@ -374,9 +346,101 @@ export function StatusPicker({ currentStatus }: StatusPickerProps) {
 }
 ```
 
-### 4.3 Update Home Page
+### 4.4 Update Home Page with Picker
 
-Update `app/page.tsx` to show statuses:
+Update `app/page.tsx` to add the status picker:
+
+```typescript
+import { getSession } from "@/lib/auth";
+import { LoginForm } from "@/components/LoginForm";
+import { LogoutButton } from "@/components/LogoutButton";
+import { StatusPicker } from "@/components/StatusPicker";
+
+export default async function Home() {
+  const session = await getSession();
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+      <main className="w-full max-w-md mx-auto p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+            Statusphere
+          </h1>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Set your status on the Atmosphere
+          </p>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+          {session ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Signed in
+                </p>
+                <LogoutButton />
+              </div>
+              <StatusPicker />
+            </div>
+          ) : (
+            <LoginForm />
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+
+### Checkpoint: Test Status Submission
+
+```bash
+pnpm dev
+```
+
+1. Log in at http://127.0.0.1:3000
+2. Click an emoji to set your status
+3. The status should be saved (check your PDS or database)
+
+---
+
+## Part 5: Display Status Feed
+
+Now let's show a feed of recent statuses.
+
+### 5.1 Add Read Queries
+
+Add these queries to `lib/db/queries.ts`:
+
+```typescript
+export async function getRecentStatuses() {
+  const db = getDb();
+  return db
+    .selectFrom("status")
+    .innerJoin("account", "status.authorDid", "account.did")
+    .selectAll()
+    .where("current", "=", 1)
+    .orderBy("createdAt", "desc")
+    .limit(5)
+    .execute();
+}
+
+export async function getAccountStatus(did: string) {
+  const db = getDb();
+  const status = await db
+    .selectFrom("status")
+    .selectAll()
+    .where("authorDid", "=", did)
+    .orderBy("createdAt", "desc")
+    .limit(1)
+    .executeTakeFirst();
+  return status ?? null;
+}
+```
+
+### 5.2 Update Home Page with Feed
+
+Update `app/page.tsx` to display the feed:
 
 ```typescript
 import { getSession } from "@/lib/auth";
@@ -445,23 +509,19 @@ export default async function Home() {
 }
 ```
 
-### Checkpoint: Test Status Submission
+### Checkpoint: Test Status Feed
 
-```bash
-pnpm dev
-```
-
-1. Log in at http://127.0.0.1:3000
-2. Click an emoji to set your status
-3. The status should appear in the Recent feed
+1. Set a status
+2. It should appear in the "Recent" feed below
+3. The picker should highlight your current status
 
 ---
 
-## Part 5: Real-time Sync with TAP
+## Part 6: Real-time Sync with TAP
 
-TAP (Taxon Appliance Protocol) provides real-time updates when any user sets a status.
+Right now, your app only shows statuses from users who set them through your app. TAP (Taxon Appliance Protocol) provides real-time updates when *any* user on the network sets a status.
 
-### 5.1 TAP Client
+### 6.1 TAP Client
 
 Create `lib/tap.ts`:
 
@@ -480,7 +540,33 @@ export const getTap = (): Tap => {
 };
 ```
 
-### 5.2 Webhook Handler
+### 6.2 Add Delete Queries
+
+TAP will notify us when records are deleted too. Add these to `lib/db/queries.ts`:
+
+```typescript
+import { AtUri } from "@atproto/syntax";
+
+export async function deleteStatus(uri: AtUri) {
+  await getDb()
+    .deleteFrom("status")
+    .where("uri", "=", uri.toString())
+    .execute();
+}
+
+export async function deleteAccount(did: string) {
+  await getDb()
+    .deleteFrom("account")
+    .where("did", "=", did)
+    .execute();
+  await getDb()
+    .deleteFrom("status")
+    .where("authorDid", "=", did)
+    .execute();
+}
+```
+
+### 6.3 Webhook Handler
 
 Create `app/api/webhook/route.ts`:
 
@@ -557,7 +643,7 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-### 5.3 Environment Variables
+### 6.4 Environment Variables
 
 Add to your environment:
 
@@ -572,11 +658,11 @@ The `TAP_ADMIN_PASSWORD` is a shared secret between your app and the TAP server 
 
 ## Summary
 
-You've extended the OAuth tutorial with:
+You've built Statusphere by incrementally adding:
 
 1. **Lexicons** - Custom schema for status records
-2. **Status API** - Write records to user's PDS
-3. **Local Storage** - Cache statuses for display
+2. **Status Submission** - Write records to user's PDS, save locally
+3. **Status Feed** - Display recent statuses with handles
 4. **TAP Integration** - Real-time updates from other users
 
 The key AT Protocol concepts demonstrated:

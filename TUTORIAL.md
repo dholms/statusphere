@@ -1,3 +1,5 @@
+
+
 # Building Statusphere: Custom Records with AT Protocol
 
 Build a status-setting app using custom Lexicons and real-time sync.
@@ -117,7 +119,9 @@ export interface StatusTable {
 
 ### 3.2 Add Migration
 
-Update `lib/db/migrations.ts` to create the new tables:
+We're going to need tables to store information about our users and their statuses.
+
+If you're building on top of the OAuth tutorial and have already deployed/migrated your database, you'll want to put these in a new migration called "002".
 
 ```typescript
 const migrations: Record<string, Migration> = {
@@ -158,15 +162,7 @@ const migrations: Record<string, Migration> = {
 };
 ```
 
-### 3.3 Create Queries File
-
-Create an empty `lib/db/queries.ts` file that we'll add to as we build features:
-
-```typescript
-import { getDb, AccountTable, StatusTable } from ".";
-```
-
-### 3.4 Run Migrations
+### 3.3 Run Migrations
 
 ```bash
 pnpm migrate
@@ -176,42 +172,9 @@ pnpm migrate
 
 ## Part 4: Status Submission
 
-Now let's build the feature that lets users set their status.
+Now let's build the feature that lets users set their status. The record will be written to the user's PDS (Personal Data Server).
 
-### 4.1 Add Write Queries
-
-First, add the queries we need for saving statuses. Add to `lib/db/queries.ts`:
-
-```typescript
-export async function insertStatus(data: StatusTable) {
-  await getDb()
-    .insertInto("status")
-    .values(data)
-    .onConflict((oc) =>
-      oc.column("uri").doUpdateSet({
-        status: data.status,
-        createdAt: data.createdAt,
-        indexedAt: data.indexedAt,
-      }),
-    )
-    .execute();
-}
-
-export async function upsertAccount(data: AccountTable) {
-  await getDb()
-    .insertInto("account")
-    .values(data)
-    .onConflict((oc) =>
-      oc.column("did").doUpdateSet({
-        handle: data.handle,
-        active: data.active,
-      }),
-    )
-    .execute();
-}
-```
-
-### 4.2 Status API Route
+### 4.1 Status API Route
 
 Create `app/api/status/route.ts`:
 
@@ -219,7 +182,6 @@ Create `app/api/status/route.ts`:
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@atproto/lex";
 import { getOAuthClient, getSession } from "@/lib/auth";
-import { insertStatus, upsertAccount } from "@/lib/db/queries";
 import * as xyz from "@/lib/lexicons/xyz";
 
 export async function POST(request: NextRequest) {
@@ -244,23 +206,6 @@ export async function POST(request: NextRequest) {
     createdAt,
   });
 
-  // Save locally for immediate display
-  await insertStatus({
-    uri: res.uri,
-    authorDid: session.did,
-    status,
-    createdAt,
-    indexedAt: createdAt,
-    current: 1,
-  });
-
-  // Cache account info
-  await upsertAccount({
-    did: session.did,
-    handle: oauthSession.handle ?? session.did,
-    active: 1,
-  });
-
   return NextResponse.json({
     success: true,
     uri: res.uri,
@@ -272,9 +217,9 @@ export async function POST(request: NextRequest) {
 - Verify user is logged in
 - Create a lex `Client` with their OAuth session
 - Use generated lexicon to create a record on their PDS
-- Save locally for immediate display
+- The record now exists in the user's repository
 
-### 4.3 Status Picker Component
+### 4.2 Status Picker Component
 
 Create `components/StatusPicker.tsx`:
 
@@ -346,7 +291,7 @@ export function StatusPicker({ currentStatus }: StatusPickerProps) {
 }
 ```
 
-### 4.4 Update Home Page with Picker
+### 4.3 Update Home Page with Picker
 
 Update `app/page.tsx` to add the status picker:
 
@@ -400,128 +345,17 @@ pnpm dev
 
 1. Log in at http://127.0.0.1:3000
 2. Click an emoji to set your status
-3. The status should be saved (check your PDS or database)
+3. The record is now saved on your PDS
+
+At this point, the status is written to the network but we can't see it yet. We need to receive updates from TAP to populate our local database.
 
 ---
 
-## Part 5: Display Status Feed
+## Part 5: Real-time Sync with TAP
 
-Now let's show a feed of recent statuses.
+TAP (Taxon Appliance Protocol) provides real-time updates when users create, update, or delete records. We'll use it to sync status records into our local database.
 
-### 5.1 Add Read Queries
-
-Add these queries to `lib/db/queries.ts`:
-
-```typescript
-export async function getRecentStatuses() {
-  const db = getDb();
-  return db
-    .selectFrom("status")
-    .innerJoin("account", "status.authorDid", "account.did")
-    .selectAll()
-    .where("current", "=", 1)
-    .orderBy("createdAt", "desc")
-    .limit(5)
-    .execute();
-}
-
-export async function getAccountStatus(did: string) {
-  const db = getDb();
-  const status = await db
-    .selectFrom("status")
-    .selectAll()
-    .where("authorDid", "=", did)
-    .orderBy("createdAt", "desc")
-    .limit(1)
-    .executeTakeFirst();
-  return status ?? null;
-}
-```
-
-### 5.2 Update Home Page with Feed
-
-Update `app/page.tsx` to display the feed:
-
-```typescript
-import { getSession } from "@/lib/auth";
-import { getRecentStatuses, getAccountStatus } from "@/lib/db/queries";
-import { LoginForm } from "@/components/LoginForm";
-import { LogoutButton } from "@/components/LogoutButton";
-import { StatusPicker } from "@/components/StatusPicker";
-
-export default async function Home() {
-  const session = await getSession();
-  const statuses = await getRecentStatuses();
-  const accountStatus = session ? await getAccountStatus(session.did) : null;
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-      <main className="w-full max-w-md mx-auto p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-            Statusphere
-          </h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Set your status on the Atmosphere
-          </p>
-        </div>
-
-        {session ? (
-          <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Signed in
-              </p>
-              <LogoutButton />
-            </div>
-            <StatusPicker currentStatus={accountStatus?.status} />
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
-            <LoginForm />
-          </div>
-        )}
-
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
-          <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
-            Recent
-          </h3>
-          {statuses.length === 0 ? (
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              No statuses yet. Be the first!
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {statuses.map((s) => (
-                <li key={s.uri} className="flex items-center gap-3">
-                  <span className="text-2xl">{s.status}</span>
-                  <span className="text-zinc-600 dark:text-zinc-400 text-sm">
-                    @{s.handle}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </main>
-    </div>
-  );
-}
-```
-
-### Checkpoint: Test Status Feed
-
-1. Set a status
-2. It should appear in the "Recent" feed below
-3. The picker should highlight your current status
-
----
-
-## Part 6: Real-time Sync with TAP
-
-Right now, your app only shows statuses from users who set them through your app. TAP (Taxon Appliance Protocol) provides real-time updates when *any* user on the network sets a status.
-
-### 6.1 TAP Client
+### 5.1 TAP Client
 
 Create `lib/tap.ts`:
 
@@ -540,17 +374,45 @@ export const getTap = (): Tap => {
 };
 ```
 
-### 6.2 Add Delete Queries
+### 5.2 Add Database Queries
 
-TAP will notify us when records are deleted too. Add these to `lib/db/queries.ts`:
+Create `lib/db/queries.ts` with the queries we need for handling TAP events:
 
 ```typescript
+import { getDb, AccountTable, StatusTable } from ".";
 import { AtUri } from "@atproto/syntax";
+
+export async function insertStatus(data: StatusTable) {
+  await getDb()
+    .insertInto("status")
+    .values(data)
+    .onConflict((oc) =>
+      oc.column("uri").doUpdateSet({
+        status: data.status,
+        createdAt: data.createdAt,
+        indexedAt: data.indexedAt,
+      }),
+    )
+    .execute();
+}
 
 export async function deleteStatus(uri: AtUri) {
   await getDb()
     .deleteFrom("status")
     .where("uri", "=", uri.toString())
+    .execute();
+}
+
+export async function upsertAccount(data: AccountTable) {
+  await getDb()
+    .insertInto("account")
+    .values(data)
+    .onConflict((oc) =>
+      oc.column("did").doUpdateSet({
+        handle: data.handle,
+        active: data.active,
+      }),
+    )
     .execute();
 }
 
@@ -566,7 +428,7 @@ export async function deleteAccount(did: string) {
 }
 ```
 
-### 6.3 Webhook Handler
+### 5.3 Webhook Handler
 
 Create `app/api/webhook/route.ts`:
 
@@ -643,7 +505,13 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-### 6.4 Environment Variables
+**What's happening:**
+- TAP sends webhook events when records change anywhere on the network
+- We validate the request using a shared secret
+- For `identity` events, we update our account cache
+- For `record` events, we insert/update/delete statuses in our local DB
+
+### 5.4 Environment Variables
 
 Add to your environment:
 
@@ -656,21 +524,206 @@ The `TAP_ADMIN_PASSWORD` is a shared secret between your app and the TAP server 
 
 ---
 
+## Part 6: Display Status Feed
+
+Now that TAP is populating our database, let's display the statuses.
+
+### 6.1 Add Read Queries
+
+Add these queries to `lib/db/queries.ts`:
+
+```typescript
+export async function getRecentStatuses() {
+  const db = getDb();
+  return db
+    .selectFrom("status")
+    .innerJoin("account", "status.authorDid", "account.did")
+    .selectAll()
+    .where("current", "=", 1)
+    .orderBy("createdAt", "desc")
+    .limit(5)
+    .execute();
+}
+
+export async function getAccountStatus(did: string) {
+  const db = getDb();
+  const status = await db
+    .selectFrom("status")
+    .selectAll()
+    .where("authorDid", "=", did)
+    .orderBy("createdAt", "desc")
+    .limit(1)
+    .executeTakeFirst();
+  return status ?? null;
+}
+```
+
+### 6.2 Update Home Page with Feed
+
+Update `app/page.tsx` to display the feed:
+
+```typescript
+import { getSession } from "@/lib/auth";
+import { getRecentStatuses, getAccountStatus } from "@/lib/db/queries";
+import { LoginForm } from "@/components/LoginForm";
+import { LogoutButton } from "@/components/LogoutButton";
+import { StatusPicker } from "@/components/StatusPicker";
+
+export default async function Home() {
+  const session = await getSession();
+  const statuses = await getRecentStatuses();
+  const accountStatus = session ? await getAccountStatus(session.did) : null;
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+      <main className="w-full max-w-md mx-auto p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+            Statusphere
+          </h1>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Set your status on the Atmosphere
+          </p>
+        </div>
+
+        {session ? (
+          <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Signed in
+              </p>
+              <LogoutButton />
+            </div>
+            <StatusPicker currentStatus={accountStatus?.status} />
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
+            <LoginForm />
+          </div>
+        )}
+
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+          <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
+            Recent
+          </h3>
+          {statuses.length === 0 ? (
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+              No statuses yet. Be the first!
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {statuses.map((s) => (
+                <li key={s.uri} className="flex items-center gap-3">
+                  <span className="text-2xl">{s.status}</span>
+                  <span className="text-zinc-600 dark:text-zinc-400 text-sm">
+                    @{s.handle}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+
+### Checkpoint: Test the Full Flow
+
+1. Set a status
+2. TAP receives the record from the network and sends a webhook
+3. The webhook saves it to your local database
+4. Refresh the page - your status appears in the feed!
+
+This is the canonical AT Protocol data flow: records are written to the user's PDS, then synced to your app via TAP.
+
+---
+
+## Part 7: Optimistic Writes (Enhancement)
+
+You may notice there's a delay between setting a status and seeing it appear. That's because the status has to round-trip through the network: PDS → TAP → webhook → your DB.
+
+For a snappier UX, we can write to our local database immediately after writing to the PDS. This is called an "optimistic write" - we optimistically assume TAP will deliver the same data shortly.
+
+### 7.1 Update Status Route
+
+Update `app/api/status/route.ts` to save locally:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { Client } from "@atproto/lex";
+import { getOAuthClient, getSession } from "@/lib/auth";
+import { insertStatus, upsertAccount } from "@/lib/db/queries";
+import * as xyz from "@/lib/lexicons/xyz";
+
+export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { status } = await request.json();
+
+  if (!status || typeof status !== "string") {
+    return NextResponse.json({ error: "Status is required" }, { status: 400 });
+  }
+
+  const client = await getOAuthClient();
+  const oauthSession = await client.restore(session.did);
+  const lexClient = new Client(oauthSession);
+
+  const createdAt = new Date().toISOString();
+  const res = await lexClient.create(xyz.statusphere.status, {
+    status,
+    createdAt,
+  });
+
+  // Optimistic write: save locally for immediate display
+  await insertStatus({
+    uri: res.uri,
+    authorDid: session.did,
+    status,
+    createdAt,
+    indexedAt: createdAt,
+    current: 1,
+  });
+
+  // Cache account info
+  await upsertAccount({
+    did: session.did,
+    handle: oauthSession.handle ?? session.did,
+    active: 1,
+  });
+
+  return NextResponse.json({
+    success: true,
+    uri: res.uri,
+  });
+}
+```
+
+Now when you set a status, it appears immediately - no waiting for the TAP round-trip.
+
+---
+
 ## Summary
 
 You've built Statusphere by incrementally adding:
 
 1. **Lexicons** - Custom schema for status records
-2. **Status Submission** - Write records to user's PDS, save locally
-3. **Status Feed** - Display recent statuses with handles
-4. **TAP Integration** - Real-time updates from other users
+2. **Status Submission** - Write records to user's PDS
+3. **TAP Sync** - Receive real-time updates from the network
+4. **Status Feed** - Display recent statuses with handles
+5. **Optimistic Writes** - Instant feedback for better UX
 
-The key AT Protocol concepts demonstrated:
+The key AT Protocol data flow:
 
-- **Lexicons** define your data schema
-- **Records** are stored in user repositories on their PDS
-- **OAuth scopes** grant access to specific record types
-- **TAP** provides real-time sync across the network
+```
+User action → Write to PDS → TAP syncs → Webhook → Local DB → Display
+                    ↓
+            (Optimistic write for instant feedback)
+```
 
 **Next steps:**
 - Add "top statuses" aggregation

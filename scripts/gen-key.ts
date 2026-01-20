@@ -1,10 +1,9 @@
 import { JoseKey } from "@atproto/oauth-client-node";
 
-const run = async () => {
+async function main() {
   const kid = Date.now().toString();
   const key = await JoseKey.generate(["ES256"], kid);
-  const jwk = key.privateJwk;
-  console.log(JSON.stringify(jwk));
-};
+  console.log(JSON.stringify(key.privateJwk));
+}
 
-run();
+main();

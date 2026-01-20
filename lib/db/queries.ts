@@ -1,35 +1,26 @@
-import { Transaction } from "kysely";
-import { getDb, DatabaseSchema, AccountTable, StatusTable } from ".";
-import { getTap } from "@/lib/tap";
+import { getDb, AccountTable, StatusTable, DatabaseSchema } from ".";
 import { AtUri } from "@atproto/syntax";
 import { getHandle } from "@atproto/common-web";
+import { getTap } from "@/lib/tap";
+import { Transaction } from "kysely";
 
-// Read queries
-
-export async function getRecentStatuses() {
+export async function getAccountHandle(did: string): Promise<string | null> {
   const db = getDb();
-  const statuses = await db
-    .selectFrom("status")
-    .innerJoin("account", "status.authorDid", "account.did")
-    .selectAll()
-    .where("current", "=", 1)
-    .orderBy("createdAt", "desc")
-    .limit(5)
-    .execute();
-  return statuses;
-}
-
-export async function getTopStatuses(limit = 10) {
-  const db = getDb();
-  const topStatuses = await db
-    .selectFrom("status")
-    .select(["status", db.fn.count("uri").as("count")])
-    .where("current", "=", 1)
-    .groupBy("status")
-    .orderBy("count", "desc")
-    .limit(limit)
-    .execute();
-  return topStatuses;
+  // if we've tracked to the account through Tap and gotten their account info, we'll load from there
+  const account = await db
+    .selectFrom("account")
+    .select("handle")
+    .where("did", "=", did)
+    .executeTakeFirst();
+  if (account) return account.handle;
+  // otherwise we'll resolve the accounts DID through Tap which provides identity caching
+  try {
+    const didDoc = await getTap().resolveDid(did);
+    if (!didDoc) return null;
+    return getHandle(didDoc) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getAccountStatus(did: string) {
@@ -44,27 +35,29 @@ export async function getAccountStatus(did: string) {
   return status ?? null;
 }
 
-export async function getAccountHandle(did: string): Promise<string | null> {
+export async function getRecentStatuses(limit = 5) {
   const db = getDb();
-  const account = await db
-    .selectFrom("account")
-    .select("handle")
-    .where("did", "=", did)
-    .executeTakeFirst();
-  if (account) {
-    return account.handle;
-  }
-
-  try {
-    const didDoc = await getTap().resolveDid(did);
-    if (!didDoc) return null;
-    return getHandle(didDoc) ?? null;
-  } catch {
-    return null;
-  }
+  return db
+    .selectFrom("status")
+    .innerJoin("account", "status.authorDid", "account.did")
+    .selectAll()
+    .orderBy("createdAt", "desc")
+    .limit(limit)
+    .execute();
 }
 
-// Write queries
+export async function getTopStatuses(limit = 10) {
+  const db = getDb();
+  return db
+    .selectFrom("status")
+    .select(["status", db.fn.count("uri").as("count")])
+    .where("current", "=", 1)
+    .groupBy("status")
+    .orderBy("count", "desc")
+    .limit(limit)
+    .execute();
+}
+
 export async function insertStatus(data: StatusTable) {
   getDb()
     .transaction()
@@ -107,22 +100,20 @@ export async function upsertAccount(data: AccountTable) {
 }
 
 export async function deleteAccount(did: string) {
-  getDb()
-    .transaction()
-    .execute(async (tx) => {
-      await tx.deleteFrom("account").where("did", "=", did).execute();
-      await tx.deleteFrom("status").where("authorDid", "=", did).execute();
-    });
+  await getDb().deleteFrom("account").where("did", "=", did).execute();
+  await getDb().deleteFrom("status").where("authorDid", "=", did).execute();
 }
 
-// expected inside of transaction
+// Helper to update which status is "current" for a user (inside a transaction)
 async function setCurrStatus(tx: Transaction<DatabaseSchema>, did: string) {
+  // Clear current flag for all user's statuses
   await tx
     .updateTable("status")
     .set({ current: 0 })
     .where("authorDid", "=", did)
     .where("current", "=", 1)
     .execute();
+  // Set the most recent status as current
   await tx
     .updateTable("status")
     .set({ current: 1 })

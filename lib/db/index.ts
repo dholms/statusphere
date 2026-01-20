@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { Kysely, SqliteDialect } from "kysely";
 
-const DATABASE_PATH = process.env.DATABASE_PATH || "statusphere.db";
+const DATABASE_PATH = process.env.DATABASE_PATH || "app.db";
 
 let _db: Kysely<DatabaseSchema> | null = null;
 

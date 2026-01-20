@@ -16,7 +16,7 @@ export function LoginForm() {
       const res = await fetch("/oauth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle: handle.trim() }),
+        body: JSON.stringify({ handle }),
       });
 
       const data = await res.json();
@@ -25,7 +25,7 @@ export function LoginForm() {
         throw new Error(data.error || "Login failed");
       }
 
-      // Redirect to the authorization server
+      // Redirect to authorization server
       window.location.href = data.redirectUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -34,43 +34,29 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label
-          htmlFor="handle"
-          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-        >
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
           Handle
         </label>
         <input
-          id="handle"
           type="text"
           value={handle}
           onChange={(e) => setHandle(e.target.value)}
           placeholder="alice.bsky.social"
-          required
+          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
           disabled={loading}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md
-                     bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100
-                     placeholder:text-zinc-400 dark:placeholder:text-zinc-500
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                     disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-      )}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
 
       <button
         type="submit"
-        disabled={loading || !handle.trim()}
-        className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-md
-                   hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                   disabled:opacity-50 disabled:cursor-not-allowed
-                   transition-colors"
+        disabled={loading || !handle}
+        className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
       >
-        {loading ? "Logging in..." : "Login"}
+        {loading ? "Logging in..." : "Login to the Atmosphere"}
       </button>
     </form>
   );

@@ -1,21 +1,23 @@
-import { getSession } from "@/lib/auth";
-import { LoginForm } from "@/components/LoginForm";
-import { LogoutButton } from "@/components/LogoutButton";
-import { StatusPicker } from "@/components/StatusPicker";
-import { timeAgo } from "@/lib/util";
+import { getSession } from "@/lib/auth/session";
 import {
-  getAccountHandle,
   getAccountStatus,
   getRecentStatuses,
   getTopStatuses,
+  getAccountHandle,
 } from "@/lib/db/queries";
+import { LoginForm } from "@/components/LoginForm";
+import { LogoutButton } from "@/components/LogoutButton";
+import { StatusPicker } from "@/components/StatusPicker";
 
 export default async function Home() {
   const session = await getSession();
-  const statuses = await getRecentStatuses();
-  const topStatuses = await getTopStatuses();
-  const accountStatus = session ? await getAccountStatus(session.did) : null;
-  const accountHandle = session ? await getAccountHandle(session.did) : null;
+  const [statuses, topStatuses, accountStatus, accountHandle] =
+    await Promise.all([
+      getRecentStatuses(),
+      getTopStatuses(),
+      session ? getAccountStatus(session.did) : null,
+      session ? getAccountHandle(session.did) : null,
+    ]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
@@ -32,20 +34,12 @@ export default async function Home() {
         {session ? (
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Signed in as
-                </p>
-                <p className="font-mono text-sm text-zinc-900 dark:text-zinc-100 break-all">
-                  {accountHandle ?? "handle.invalid"}
-                </p>
-              </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Signed in as @{accountHandle ?? session.did}
+              </p>
               <LogoutButton />
             </div>
-
-            <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-              <StatusPicker currentStatus={accountStatus?.status} />
-            </div>
+            <StatusPicker currentStatus={accountStatus?.status} />
           </div>
         ) : (
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
@@ -53,27 +47,28 @@ export default async function Home() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
-          {topStatuses.length > 0 && (
-            <div className="mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-                Top
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {topStatuses.map((s) => (
-                  <div
-                    key={s.status}
-                    className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-full px-2 py-0.5"
-                  >
-                    <span className="text-base">{s.status}</span>
-                    <span className="text-zinc-500 dark:text-zinc-400 text-xs">
-                      {String(s.count)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        {topStatuses.length > 0 && (
+          <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
+            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
+              Top Statuses
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {topStatuses.map((s) => (
+                <span
+                  key={s.status}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-sm"
+                >
+                  <span className="text-lg">{s.status}</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    {String(s.count)}
+                  </span>
+                </span>
+              ))}
             </div>
-          )}
+          </div>
+        )}
+
+        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
           <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
             Recent
           </h3>
@@ -84,12 +79,12 @@ export default async function Home() {
           ) : (
             <ul className="space-y-3">
               {statuses.map((s) => (
-                <li key={s.uri} className="flex items-center gap-3 text-sm">
+                <li key={s.uri} className="flex items-center gap-3">
                   <span className="text-2xl">{s.status}</span>
-                  <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs truncate flex-1">
-                    {s.handle}
+                  <span className="text-zinc-600 dark:text-zinc-400 text-sm">
+                    @{s.handle}
                   </span>
-                  <span className="text-zinc-400 dark:text-zinc-500 text-xs">
+                  <span className="text-zinc-400 dark:text-zinc-500 text-xs ml-auto">
                     {timeAgo(s.createdAt)}
                   </span>
                 </li>
@@ -100,4 +95,17 @@ export default async function Home() {
       </main>
     </div>
   );
+}
+
+function timeAgo(dateString: string): string {
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  const seconds = Math.floor((now - then) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
 }

@@ -1,5 +1,4 @@
 import {
-  DEFAULT_LOOPBACK_CLIENT_REDIRECT_URIS,
   JoseKey,
   Keyset,
   NodeOAuthClient,
@@ -23,21 +22,21 @@ function getClientMetadata(): OAuthClientMetadataInput {
   if (PUBLIC_URL) {
     return {
       client_id: `${PUBLIC_URL}/oauth-client-metadata.json`,
-      client_name: "Statusphere",
+      client_name: "OAuth Tutorial",
       client_uri: PUBLIC_URL,
       redirect_uris: [`${PUBLIC_URL}/oauth/callback`],
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       scope: SCOPE,
       token_endpoint_auth_method: "private_key_jwt" as const,
-      token_endpoint_auth_signing_alg: "ES256" as const,
+      token_endpoint_auth_signing_alg: "ES256" as const, // must match the alg in scripts/gen-key.ts
       jwks_uri: `${PUBLIC_URL}/.well-known/jwks.json`,
       dpop_bound_access_tokens: true,
     };
   } else {
     return buildAtprotoLoopbackClientMetadata({
       scope: SCOPE,
-      redirect_uris: DEFAULT_LOOPBACK_CLIENT_REDIRECT_URIS,
+      redirect_uris: ["http://127.0.0.1:3000/oauth/callback"],
     });
   }
 }

@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseTapEvent, assureAdminAuth } from "@atproto/tap";
 import { AtUri } from "@atproto/syntax";
-import * as xyz from "@/lib/lexicons/xyz";
 import {
   upsertAccount,
   insertStatus,
   deleteStatus,
   deleteAccount,
 } from "@/lib/db/queries";
+import * as xyz from "@/lib/lexicons/xyz";
 
 const TAP_ADMIN_PASSWORD = process.env.TAP_ADMIN_PASSWORD;
 
 export async function POST(request: NextRequest) {
+  // Verify request is from our TAP server
   if (TAP_ADMIN_PASSWORD) {
     const authHeader = request.headers.get("Authorization");
     if (!authHeader) {
@@ -26,6 +27,8 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const evt = parseTapEvent(body);
+
+  // Handle account/identity changes
   if (evt.type === "identity") {
     if (evt.status === "deleted") {
       await deleteAccount(evt.did);
@@ -37,9 +40,11 @@ export async function POST(request: NextRequest) {
       });
     }
   }
+
+  // Handle status record changes
   if (evt.type === "record") {
     const uri = AtUri.make(evt.did, evt.collection, evt.rkey);
-    const indexedAt = new Date().toISOString();
+
     if (evt.action === "create" || evt.action === "update") {
       let record: xyz.statusphere.status.Main;
       try {
@@ -52,15 +57,14 @@ export async function POST(request: NextRequest) {
         uri: uri.toString(),
         authorDid: evt.did,
         status: record.status,
-        current: 0,
         createdAt: record.createdAt,
-        indexedAt: indexedAt,
+        indexedAt: new Date().toISOString(),
+        current: 1,
       });
-    } else {
+    } else if (evt.action === "delete") {
       await deleteStatus(uri);
     }
   }
-  return NextResponse.json({
-    success: true,
-  });
+
+  return NextResponse.json({ success: true });
 }

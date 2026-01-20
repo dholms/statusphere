@@ -1,5 +1,3 @@
-
-
 # Building Statusphere: Custom Records with AT Protocol
 
 Build a status-setting app using custom Lexicons and real-time sync.
@@ -345,9 +343,9 @@ pnpm dev
 
 1. Log in at http://127.0.0.1:3000
 2. Click an emoji to set your status
-3. The record is now saved on your PDS
+3. The status record is published on your PDS, check https://pdsls.dev and look up your account to see the record stored in your repo
 
-At this point, the status is written to the network but we can't see it yet. We need to receive updates from TAP to populate our local database.
+At this point, the status is written to the network but we can't see it in the app yet. We need to receive updates from Tap to populate our local database.
 
 ---
 
@@ -357,7 +355,7 @@ TAP (Taxon Appliance Protocol) provides real-time updates when users create, upd
 
 ### 5.1 TAP Client
 
-Create `lib/tap.ts`:
+Create `lib/tap/index.ts`:
 
 ```typescript
 import { Tap } from "@atproto/tap";
@@ -381,6 +379,18 @@ Create `lib/db/queries.ts` with the queries we need for handling TAP events:
 ```typescript
 import { getDb, AccountTable, StatusTable } from ".";
 import { AtUri } from "@atproto/syntax";
+
+export async function getAccountStatus(did: string) {
+  const db = getDb();
+  const status = await db
+    .selectFrom("status")
+    .selectAll()
+    .where("authorDid", "=", did)
+    .orderBy("createdAt", "desc")
+    .limit(1)
+    .executeTakeFirst();
+  return status ?? null;
+}
 
 export async function insertStatus(data: StatusTable) {
   await getDb()
@@ -416,19 +426,16 @@ export async function upsertAccount(data: AccountTable) {
     .execute();
 }
 
+
 export async function deleteAccount(did: string) {
-  await getDb()
-    .deleteFrom("account")
-    .where("did", "=", did)
-    .execute();
-  await getDb()
-    .deleteFrom("status")
-    .where("authorDid", "=", did)
-    .execute();
+  await getDb().deleteFrom("account").where("did", "=", did).execute();
+  await getDb().deleteFrom("status").where("authorDid", "=", did).execute();
 }
 ```
 
 ### 5.3 Webhook Handler
+
+Tap will deliver all relevant events through a webhook.
 
 Create `app/api/webhook/route.ts`:
 
@@ -506,31 +513,51 @@ export async function POST(request: NextRequest) {
 ```
 
 **What's happening:**
-- TAP sends webhook events when records change anywhere on the network
+- Tap sends webhook events when records change anywhere on the network
 - We validate the request using a shared secret
 - For `identity` events, we update our account cache
 - For `record` events, we insert/update/delete statuses in our local DB
 
-### 5.4 Environment Variables
+### 5.4 Display Current Status
 
-Add to your environment:
+Update `app/page.tsx` to fetch and pass the user's current status to the picker:
 
-```env
-TAP_URL=https://your-tap-server.example.com
-TAP_ADMIN_PASSWORD=your-shared-secret
+```typescript
+import { getAccountStatus } from "@/lib/db/queries";
+
+// In Home component:
+const accountStatus = session ? await getAccountStatus(session.did) : null;
+
+// Pass to StatusPicker:
+<StatusPicker currentStatus={accountStatus?.status} />
 ```
 
-The `TAP_ADMIN_PASSWORD` is a shared secret between your app and the TAP server to verify webhook authenticity.
+Now the StatusPicker will highlight the user's current status when the page loads.
+
+### Checkpoint: Network Indexing
+
+```bash
+# Run Tap from indigo repo root
+go run ./cmd/tap run --webhook-url=http://localhost:3000/api/webhook --collection-filters=xyz.statusphere.status
+
+# Run your app in another terminal
+pnpm dev
+
+# Add your repo to Tap for tracking (replacing the DID with yours)
+curl -H 'Content-Type: application/json' -d '{"dids":["DID"]}' http://localhost:2480/repos/add
+```
+
+You should see the webhook on your Next app being called for every previously posted status in the network. And when you refresh the page, it should be highlighting your currently set status.
 
 ---
 
 ## Part 6: Display Status Feed
 
-Now that TAP is populating our database, let's display the statuses.
+Now that Tap is populating our database, let's display the statuses.
 
 ### 6.1 Add Read Queries
 
-Add these queries to `lib/db/queries.ts`:
+Add this query to `lib/db/queries.ts`:
 
 ```typescript
 export async function getRecentStatuses() {
@@ -543,18 +570,6 @@ export async function getRecentStatuses() {
     .orderBy("createdAt", "desc")
     .limit(5)
     .execute();
-}
-
-export async function getAccountStatus(did: string) {
-  const db = getDb();
-  const status = await db
-    .selectFrom("status")
-    .selectAll()
-    .where("authorDid", "=", did)
-    .orderBy("createdAt", "desc")
-    .limit(1)
-    .executeTakeFirst();
-  return status ?? null;
 }
 ```
 
